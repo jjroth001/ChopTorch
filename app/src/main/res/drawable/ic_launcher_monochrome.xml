@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-colour version of the launcher foreground for Android 13+ themed icons. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.86"
+        android:scaleY="0.86">
+        <group android:translateY="2">
+            <path
+                android:pathData="M33,44A26,26 0,0 0,33 72M75,44A26,26 0,0 1,75 72"
+                android:strokeWidth="3.5"
+                android:strokeColor="#FFFFFFFF"
+                android:strokeLineCap="round" />
+            <path
+                android:pathData="M27,50A20,20 0,0 0,27 66M81,50A20,20 0,0 1,81 66"
+                android:strokeWidth="3"
+                android:strokeColor="#8CFFFFFF"
+                android:strokeLineCap="round" />
+            <!-- Lens, head and body in one shape, with the button cut out -->
+            <path
+                android:fillColor="#FFFFFFFF"
+                android:fillType="evenOdd"
+                android:pathData="M44,35H64A2,2 0,0 1,66 37V38L61,50V77A4,4 0,0 1,57 81H51A4,4 0,0 1,47 77V50L42,38V37A2,2 0,0 1,44 35ZM54,55A2.5,2.5 0,0 0,51.5 57.5V60.5A2.5,2.5 0,0 0,56.5 60.5V57.5A2.5,2.5 0,0 0,54 55Z" />
+        </group>
+    </group>
+</vector>

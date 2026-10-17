@@ -1,9 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Torch with chop-chop motion arcs, kept inside the 66dp adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M18,2L6,2v3l3,3v14h6L15,8l3,-3L18,2zM13,20h-2v-2h2v2zM13,16h-2v-6h2v6zM15.83,6L15,6.83L15,8h-6L9,6.83L8.17,6L15.83,6zM16,4L8,4v1h8L16,4z" />
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.86"
+        android:scaleY="0.86">
+        <group android:translateY="2">
+            <!-- Glow above the lens -->
+            <path android:pathData="M38,34a16,16 0,1 1,32 0a16,16 0,1 1,-32 0z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:type="radial"
+                        android:centerX="54"
+                        android:centerY="34"
+                        android:gradientRadius="16">
+                        <item android:offset="0" android:color="#E6FFF2C2" />
+                        <item android:offset="1" android:color="#00FFF2C2" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <!-- Motion arcs -->
+            <path
+                android:pathData="M33,44A26,26 0,0 0,33 72M75,44A26,26 0,0 1,75 72"
+                android:strokeWidth="3.5"
+                android:strokeColor="#FFBDE7E2"
+                android:strokeLineCap="round" />
+            <path
+                android:pathData="M27,50A20,20 0,0 0,27 66M81,50A20,20 0,0 1,81 66"
+                android:strokeWidth="3"
+                android:strokeColor="#8CBDE7E2"
+                android:strokeLineCap="round" />
+            <!-- Torch -->
+            <path
+                android:fillColor="#FFD3DEDC"
+                android:pathData="M42,38H66L61,50H47Z" />
+            <path
+                android:fillColor="#FFFFF2C2"
+                android:pathData="M44,35H64A2,2 0,0 1,66 37V38A2,2 0,0 1,64 40H44A2,2 0,0 1,42 38V37A2,2 0,0 1,44 35Z" />
+            <path
+                android:fillColor="#FFF4F7F6"
+                android:pathData="M51,49H57A4,4 0,0 1,61 53V77A4,4 0,0 1,57 81H51A4,4 0,0 1,47 77V53A4,4 0,0 1,51 49Z" />
+            <path
+                android:fillColor="#FFF2B441"
+                android:pathData="M54,55A2.5,2.5 0,0 1,56.5 57.5V60.5A2.5,2.5 0,0 1,51.5 60.5V57.5A2.5,2.5 0,0 1,54 55Z" />
+        </group>
+    </group>
 </vector>

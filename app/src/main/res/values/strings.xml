@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Latarka Chop</string>
+    <string name="app_name">ChopTorch</string>
     <string name="config_title">Flashlight Configuration</string>
     <string name="service_enabled">Service Enabled</string>
     <string name="gforce_threshold">Chop Strength Threshold: %.1f g</string>

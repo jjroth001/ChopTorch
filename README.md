@@ -1,4 +1,4 @@
-# Latarka Chop (fork of Latarka)
+# ChopTorch (fork of Latarka)
 
 This is a modified version of [Latarka](https://github.com/SebastianKuniec/Latarka) by Sebastian Kuniec, released under the same GPL-3.0 license. It installs alongside the original (application ID `com.kuniec.latarka.chop`).
 
@@ -12,6 +12,7 @@ This is a modified version of [Latarka](https://github.com/SebastianKuniec/Latar
 - **Starts again after a reboot or update** if it was enabled.
 - **Asks for a battery optimization exemption**, which manufacturer task killers otherwise ignore.
 - **No camera permission** (the torch API doesn't need it).
+- **New name and icon:** ChopTorch, with a torch-and-motion-arcs icon that also supports Android 13+ themed icons.
 - **CI builds a debug APK** you can install directly (`debug-apk` artifact in GitHub Actions).
 
 Detection defaults are starting points; tune the threshold and chop gaps in the app's settings for your phone.
