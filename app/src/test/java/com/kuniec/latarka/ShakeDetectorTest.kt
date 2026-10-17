@@ -1,131 +1,110 @@
 package com.kuniec.latarka
 
 import android.hardware.SensorManager
-import com.kuniec.latarka.FlashlightConfig
-import com.kuniec.latarka.ShakeDetector
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import kotlin.math.PI
+import kotlin.math.sin
 
 class ShakeDetectorTest {
 
-    private lateinit var config: FlashlightConfig
+    private val g = SensorManager.GRAVITY_EARTH
     private lateinit var detector: ShakeDetector
 
     @Before
     fun setUp() {
-        config = FlashlightConfig(
-            gForceThreshold = 2.0f,
-            slopDelayMs = 500L,
-            shakeCount = 2,
-            isDropPreventionEnabled = true
+        detector = ShakeDetector(
+            FlashlightConfig(
+                gForceThreshold = 2.0f,
+                slopDelayMs = 300L,
+                shakeCount = 2,
+                cooldownMs = 1000L,
+                resetTimeoutMs = 800L,
+                isDropPreventionEnabled = true
+            )
         )
-        detector = ShakeDetector(config)
+    }
+
+    /** One chop: a sine of linear acceleration on Y starting at [start] (ms). */
+    private fun chop(start: Long, cycles: Double = 1.0, periodMs: Double = 200.0, ampG: Double = 3.5): (Long) -> Double = { t ->
+        val u = (t - start).toDouble()
+        if (u in 0.0..cycles * periodMs) ampG * g * sin(2 * PI * u / periodMs) else 0.0
+    }
+
+    /**
+     * Feeds 50 Hz samples (gravity on Z plus the summed linear signals on Y) and
+     * returns the timestamps where the detector asked for a toggle.
+     */
+    private fun run(
+        signals: List<(Long) -> Double>,
+        totalMs: Long = 3000L,
+        freeFall: LongRange? = null
+    ): List<Long> {
+        val toggles = mutableListOf<Long>()
+        var t = 1000L
+        while (t < 1000L + totalMs) {
+            var x = 0f
+            var y = signals.sumOf { it(t) }.toFloat()
+            var z = g
+            if (freeFall != null && t in freeFall) {
+                x = 0f; y = 0f; z = 0f
+            }
+            if (detector.onSensorChanged(x, y, z, t)) toggles.add(t)
+            t += 20
+        }
+        return toggles
     }
 
     @Test
-    fun `test single shake does not trigger toggle`() {
-        val currentTime = 1000L
-        // A shake with 3G force
-        val x = 3.0f * SensorManager.GRAVITY_EARTH
-        val result = detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        assertFalse("Single shake should not trigger toggle", result)
+    fun `chop chop toggles once`() {
+        assertEquals(1, run(listOf(chop(1500), chop(1950))).size)
     }
 
     @Test
-    fun `test two shakes trigger toggle`() {
-        var currentTime = 1000L
-        val x = 3.0f * SensorManager.GRAVITY_EARTH
-        
-        // First shake
-        detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        // Advance time past slop delay
-        currentTime += 600L
-        
-        // Second shake
-        val result = detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        assertTrue("Two shakes should trigger toggle", result)
+    fun `single chop does not toggle`() {
+        assertTrue(run(listOf(chop(1500))).isEmpty())
     }
 
     @Test
-    fun `test shake during drop is ignored`() {
-        var currentTime = 1000L
-        
-        // Simulate a drop (near 0G total acceleration)
-        detector.onSensorChanged(0.1f, 0.1f, 0.1f, currentTime)
-        
-        // Shake immediately after (within 3s cooldown)
-        currentTime += 500L
-        val x = 3.0f * SensorManager.GRAVITY_EARTH
-        val result = detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        assertFalse("Shake during or immediately after drop should be ignored", result)
+    fun `two reversals inside one chop count as one chop`() {
+        assertTrue(run(listOf(chop(1500, cycles = 1.5))).isEmpty())
+        assertEquals(1, run(listOf(chop(3500, cycles = 1.5), chop(4000, cycles = 1.5)), totalMs = 5000L).size)
     }
 
     @Test
-    fun `test shakes too close together are ignored`() {
-        var currentTime = 1000L
-        val x = 3.0f * SensorManager.GRAVITY_EARTH
-        
-        // First shake
-        detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        // Second shake too soon (within slopDelayMs)
-        currentTime += 100L 
-        val result = detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        assertFalse("Shakes too close together should be ignored", result)
+    fun `one-direction bumps do not toggle`() {
+        val bumps = listOf(1500L, 1800L, 2100L, 2400L).map { s ->
+            { t: Long -> if (t >= s && t < s + 60) 3.5 * g else 0.0 }
+        }
+        assertTrue(run(bumps).isEmpty())
     }
 
     @Test
-    fun `test reset after stillness`() {
-        var currentTime = 1000L
-        val x = 3.0f * SensorManager.GRAVITY_EARTH
-        
-        // First shake
-        detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        // Wait past resetTimeoutMs (default 1000ms)
-        currentTime += config.resetTimeoutMs + 100L
-        detector.onSensorChanged(0f, 0f, 0f, currentTime)
-        
-        // Another shake (should be treated as first shake again)
-        currentTime += 100L
-        val result = detector.onSensorChanged(x, 0f, 0f, currentTime)
-        
-        assertFalse("Accumulator should have been reset after stillness", result)
+    fun `chops too far apart do not toggle`() {
+        assertTrue(run(listOf(chop(1500), chop(3000)), totalMs = 4000L).isEmpty())
     }
 
     @Test
-    fun `test custom cooldown`() {
-        val customCooldown = 3000L
-        config = config.copy(cooldownMs = customCooldown)
-        detector.updateConfig(config)
+    fun `chop chop right after a drop is ignored`() {
+        assertTrue(run(listOf(chop(1500), chop(1950)), freeFall = 1300L until 1400L).isEmpty())
+    }
 
-        var currentTime = 1000L
-        val x = 3.0f * SensorManager.GRAVITY_EARTH
+    @Test
+    fun `walking motion does not toggle`() {
+        val walking = { t: Long -> 1.0 * g * sin(2 * PI * t / 500.0) }
+        assertTrue(run(listOf(walking), totalMs = 10_000L).isEmpty())
+    }
 
-        // First shake
-        detector.onSensorChanged(x, 0f, 0f, currentTime)
-        currentTime += 600L
-        // Second shake -> triggers toggle
-        assertTrue(detector.onSensorChanged(x, 0f, 0f, currentTime))
-        
-        val toggleTime = currentTime
+    @Test
+    fun `two separate gestures toggle twice`() {
+        val toggles = run(listOf(chop(1500), chop(1950), chop(3500), chop(3950)), totalMs = 4000L)
+        assertEquals(2, toggles.size)
+    }
 
-        // Shake during custom cooldown
-        currentTime += 2000L 
-        assertFalse("Should be in cooldown", detector.onSensorChanged(x, 0f, 0f, currentTime))
-
-        // Shake after custom cooldown
-        currentTime = toggleTime + customCooldown + 100L
-        // First shake after cooldown
-        detector.onSensorChanged(x, 0f, 0f, currentTime)
-        currentTime += 600L
-        // Second shake after cooldown -> triggers toggle
-        assertTrue("Should trigger toggle after cooldown", detector.onSensorChanged(x, 0f, 0f, currentTime))
+    @Test
+    fun `first sample is not mistaken for a shake`() {
+        assertFalse(detector.onSensorChanged(0f, 0f, g, 1000L))
+        assertFalse(detector.onSensorChanged(0f, 0f, g, 1020L))
     }
 }

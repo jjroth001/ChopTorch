@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Latarka</string>
+    <string name="app_name">Latarka Chop</string>
     <string name="config_title">Konfiguracja latarki</string>
     <string name="service_enabled">Usługa włączona</string>
     <string name="gforce_threshold">Próg przeciążenia (G): %.1f g</string>

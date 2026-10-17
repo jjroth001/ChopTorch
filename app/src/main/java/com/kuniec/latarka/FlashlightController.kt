@@ -1,53 +1,117 @@
 package com.kuniec.latarka
 
 import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 
 /**
  * Controller class for managing the device's flashlight state.
  *
- * This class uses the [CameraManager] API to interact with the
- * device's camera flash.
+ * Uses [CameraManager.setTorchMode], which needs no camera permission and does not open the
+ * camera. The on/off state is tracked through a [CameraManager.TorchCallback], so it stays in
+ * sync when the torch is switched from Quick Settings or another app, and it recovers on its
+ * own after the camera app releases the flash.
  *
- * @property context The application context used to access the camera service.
+ * Call [release] when finished to unregister the callback.
+ *
+ * @property context The context used to access the camera service.
  */
 class FlashlightController(private val context: Context) {
     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-    private var isFlashlightOn = false
+
+    /** Camera whose flash unit we control; resolved lazily and re-resolved on failure. */
+    private var torchCameraId: String? = null
+
+    @Volatile private var isFlashlightOn = false
+    @Volatile private var isTorchAvailable = true
+
+    private val torchCallback = object : CameraManager.TorchCallback() {
+        override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
+            if (cameraId == resolveTorchCameraId()) {
+                isFlashlightOn = enabled
+                isTorchAvailable = true
+            }
+        }
+
+        override fun onTorchModeUnavailable(cameraId: String) {
+            if (cameraId == resolveTorchCameraId()) {
+                // Another app (usually the camera) is holding the flash. It becomes
+                // available again automatically; no restart needed.
+                isTorchAvailable = false
+                isFlashlightOn = false
+            }
+        }
+    }
+
+    init {
+        cameraManager.registerTorchCallback(torchCallback, Handler(Looper.getMainLooper()))
+    }
 
     /**
      * Toggles the flashlight state between on and off.
-     *
-     * If the flashlight is currently on, it will be turned off, and vice versa.
-     * It uses the first available camera ID that supports torch mode.
      */
     fun toggleFlashlight() {
-        try {
-            val cameraId = cameraManager.cameraIdList.firstOrNull()
-            if (cameraId != null) {
-                isFlashlightOn = !isFlashlightOn
-                cameraManager.setTorchMode(cameraId, isFlashlightOn)
-            }
-        } catch (e: Exception) {
-            Log.e("FlashlightController", "Error toggling flashlight", e)
-        }
+        setTorch(!isFlashlightOn)
     }
 
     /**
      * Explicitly turns off the flashlight if it is currently on.
      */
     fun turnOff() {
-        if (isFlashlightOn) {
-            try {
-                val cameraId = cameraManager.cameraIdList.firstOrNull()
-                if (cameraId != null) {
-                    cameraManager.setTorchMode(cameraId, false)
-                    isFlashlightOn = false
-                }
-            } catch (e: Exception) {
-                Log.e("FlashlightController", "Error turning off flashlight", e)
-            }
+        if (isFlashlightOn) setTorch(false)
+    }
+
+    /**
+     * Unregisters the torch callback.
+     */
+    fun release() {
+        cameraManager.unregisterTorchCallback(torchCallback)
+    }
+
+    private fun setTorch(on: Boolean) {
+        val cameraId = resolveTorchCameraId() ?: run {
+            Log.w(TAG, "No camera with a flash unit found")
+            return
         }
+        if (!isTorchAvailable) {
+            Log.w(TAG, "Torch is currently in use by another app")
+            return
+        }
+        try {
+            cameraManager.setTorchMode(cameraId, on)
+            isFlashlightOn = on
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting torch mode", e)
+            // Camera list can change (e.g. external cameras); look it up again next time.
+            torchCameraId = null
+        }
+    }
+
+    /**
+     * Finds a camera that actually has a flash, preferring the back-facing one.
+     */
+    private fun resolveTorchCameraId(): String? {
+        torchCameraId?.let { return it }
+        return try {
+            val withFlash = cameraManager.cameraIdList.filter { id ->
+                cameraManager.getCameraCharacteristics(id)
+                    .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            }
+            val back = withFlash.firstOrNull { id ->
+                cameraManager.getCameraCharacteristics(id)
+                    .get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+            }
+            (back ?: withFlash.firstOrNull()).also { torchCameraId = it }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error listing cameras", e)
+            null
+        }
+    }
+
+    private companion object {
+        const val TAG = "FlashlightController"
     }
 }

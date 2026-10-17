@@ -14,8 +14,8 @@ class FlashlightConfigTest {
     @Test
     fun `test default values`() {
         val config = FlashlightConfig()
-        assertEquals(2.8f, config.gForceThreshold)
-        assertEquals(500L, config.slopDelayMs)
+        assertEquals(2.0f, config.gForceThreshold)
+        assertEquals(300L, config.slopDelayMs)
         assertEquals(2, config.shakeCount)
         assertTrue(config.isEnabled)
     }

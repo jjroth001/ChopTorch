@@ -1,3 +1,23 @@
+# Latarka Chop (fork of Latarka)
+
+This is a modified version of [Latarka](https://github.com/SebastianKuniec/Latarka) by Sebastian Kuniec, released under the same GPL-3.0 license. It installs alongside the original (application ID `com.kuniec.latarka.chop`).
+
+## Changes in this fork
+
+- **Detection keeps working with the screen off.** The wake lock no longer expires after 30 minutes, the wake-up accelerometer is used when the phone has one, and events are delivered without batching.
+- **Real chop detection.** A chop is now a sharp spike followed by an opposite spike on the same dominant axis. The two reversals inside one chop count once, and the default timing (300–800 ms between chops) fits a natural chop-chop rhythm. Bumps that only push one way no longer count.
+- **Sensor timestamps instead of the wall clock**, so batched events keep their real spacing.
+- **Flashlight state stays in sync** through `CameraManager.TorchCallback` (toggling from Quick Settings no longer confuses it), and it recovers automatically after the camera app releases the flash.
+- **Uses a camera that actually has a flash**, preferring the back camera.
+- **Starts again after a reboot or update** if it was enabled.
+- **Asks for a battery optimization exemption**, which manufacturer task killers otherwise ignore.
+- **No camera permission** (the torch API doesn't need it).
+- **CI builds a debug APK** you can install directly (`debug-apk` artifact in GitHub Actions).
+
+Detection defaults are starting points; tune the threshold and chop gaps in the app's settings for your phone.
+
+---
+
 # Latarka (Shake Flashlight)
 
 A native Android application to toggle the device's flashlight using a shake gesture, mimicking the classic Motorola "chop-chop" feature.

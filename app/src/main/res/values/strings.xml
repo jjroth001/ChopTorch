@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">Latarka</string>
+    <string name="app_name">Latarka Chop</string>
     <string name="config_title">Flashlight Configuration</string>
     <string name="service_enabled">Service Enabled</string>
-    <string name="gforce_threshold">G-Force Threshold: %.1f g</string>
-    <string name="slop_delay">Slop Delay: %d ms</string>
-    <string name="shake_count">Shake Count: %d</string>
+    <string name="gforce_threshold">Chop Strength Threshold: %.1f g</string>
+    <string name="slop_delay">Min Gap Between Chops: %d ms</string>
+    <string name="shake_count">Chops Required: %d</string>
     <string name="notification_channel_name">Shake Detection Service</string>
     <string name="notification_title">Shake Detection Active</string>
     <string name="notification_text">Listening for shakes to toggle flashlight</string>
@@ -20,9 +20,9 @@
     <string name="snapping_step_ms">Snapping Step (ms): %d</string>
     <string name="snapping_step_desc">Adjust the granularity of slider movements when snapping is enabled.</string>
     <string name="cooldown_duration">Cooldown Duration: %d ms</string>
-    <string name="reset_timeout">Reset Timeout: %d ms</string>
+    <string name="reset_timeout">Max Gap Between Chops: %d ms</string>
     <string name="permissions_required">Permissions Required</string>
-    <string name="permissions_required_desc">This app requires Camera and Notification permissions to work correctly. Without them, the flashlight cannot be controlled and the background service cannot show a notification.</string>
+    <string name="permissions_required_desc">This app needs the Notification permission so its background service can run. For reliable detection with the screen off, also allow it to ignore battery optimization when asked.</string>
     <string name="grant_permissions">Grant Permissions</string>
     <string name="camera_permission_denied">Camera permission is required for the flashlight.</string>
     <string name="notification_permission_denied">Notification permission is required for the background service.</string>

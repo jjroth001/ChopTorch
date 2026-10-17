@@ -20,8 +20,8 @@ import android.content.Context
  * @property snappingStepMs The step size for time-based parameter snapping.
  */
 data class FlashlightConfig(
-    val gForceThreshold: Float = 2.8f,
-    val slopDelayMs: Long = 500L,
+    val gForceThreshold: Float = 2.0f,
+    val slopDelayMs: Long = 300L,
     val shakeCount: Int = 2,
     val isEnabled: Boolean = true,
     val isSnappingEnabled: Boolean = true,
@@ -29,8 +29,8 @@ data class FlashlightConfig(
     val isManualEntryMode: Boolean = false,
     val snappingStepG: Float = 0.1f,
     val snappingStepMs: Int = 50,
-    val cooldownMs: Long = 1500L,
-    val resetTimeoutMs: Long = 1000L
+    val cooldownMs: Long = 1000L,
+    val resetTimeoutMs: Long = 800L
 ) {
     companion object {
         private const val PREFS_NAME = "flashlight_prefs"
@@ -55,8 +55,8 @@ data class FlashlightConfig(
         fun load(context: Context): FlashlightConfig {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return FlashlightConfig(
-                gForceThreshold = prefs.getFloat(KEY_THRESHOLD, 2.8f),
-                slopDelayMs = prefs.getLong(KEY_DELAY, 500L),
+                gForceThreshold = prefs.getFloat(KEY_THRESHOLD, 2.0f),
+                slopDelayMs = prefs.getLong(KEY_DELAY, 300L),
                 shakeCount = prefs.getInt(KEY_COUNT, 2),
                 isEnabled = prefs.getBoolean(KEY_ENABLED, true),
                 isSnappingEnabled = prefs.getBoolean(KEY_SNAPPING, true),
@@ -64,8 +64,8 @@ data class FlashlightConfig(
                 isManualEntryMode = prefs.getBoolean(KEY_MANUAL_ENTRY, false),
                 snappingStepG = prefs.getFloat(KEY_STEP_G, 0.1f),
                 snappingStepMs = prefs.getInt(KEY_STEP_MS, 50),
-                cooldownMs = prefs.getLong(KEY_COOLDOWN, 1500L),
-                resetTimeoutMs = prefs.getLong(KEY_RESET_TIMEOUT, 1000L)
+                cooldownMs = prefs.getLong(KEY_COOLDOWN, 1000L),
+                resetTimeoutMs = prefs.getLong(KEY_RESET_TIMEOUT, 800L)
             )
         }
 

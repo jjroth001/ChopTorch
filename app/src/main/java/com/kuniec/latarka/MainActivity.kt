@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
+import android.os.PowerManager
+import android.net.Uri
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,11 +51,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val permissions = mutableListOf(Manifest.permission.CAMERA)
+        // The torch API needs no camera permission; only notifications must be granted.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            requestPermissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
         }
-        requestPermissionLauncher.launch(permissions.toTypedArray())
 
         setContent {
             LatarkaTheme {
@@ -342,14 +345,6 @@ fun ConfigurationScreen(modifier: Modifier = Modifier) {
 @Composable
 fun PermissionCheck() {
     val context = LocalContext.current
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -366,14 +361,13 @@ fun PermissionCheck() {
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        hasCameraPermission = permissions[Manifest.permission.CAMERA] ?: hasCameraPermission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             hasNotificationPermission =
                 permissions[Manifest.permission.POST_NOTIFICATIONS] ?: hasNotificationPermission
         }
     }
 
-    if (!hasCameraPermission || !hasNotificationPermission) {
+    if (!hasNotificationPermission) {
         AlertDialog(
             onDismissRequest = { },
             title = {
@@ -390,11 +384,9 @@ fun PermissionCheck() {
             text = { Text(stringResource(R.string.permissions_required_desc)) },
             confirmButton = {
                 Button(onClick = {
-                    val permissions = mutableListOf(Manifest.permission.CAMERA)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                        launcher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
                     }
-                    launcher.launch(permissions.toTypedArray())
                 }) {
                     Text(stringResource(R.string.grant_permissions))
                 }
@@ -534,6 +526,7 @@ fun ConfigurationScreenPreview() {
 private fun updateService(context: Context, enabled: Boolean) {
     val intent = Intent(context, ShakeDetectionService::class.java)
     if (enabled) {
+        requestBatteryExemption(context)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
         } else {
@@ -541,5 +534,32 @@ private fun updateService(context: Context, enabled: Boolean) {
         }
     } else {
         context.stopService(intent)
+    }
+}
+
+/**
+ * Asks the user to exempt the app from battery optimization. Without this, Doze and
+ * manufacturer task killers stop the background service and the gesture stops working.
+ * Does nothing if the exemption is already granted.
+ */
+@SuppressLint("BatteryLife")
+private fun requestBatteryExemption(context: Context) {
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    if (powerManager.isIgnoringBatteryOptimizations(context.packageName)) return
+    try {
+        val intent = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:${context.packageName}")
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        // Some ROMs don't provide this screen; fall back to the general list.
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        } catch (_: Exception) {
+        }
     }
 }
