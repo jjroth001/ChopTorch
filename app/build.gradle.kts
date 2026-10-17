@@ -16,14 +16,31 @@ android {
         applicationId = "com.kuniec.latarka.chop"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.1-chop"
+        versionCode = 2
+        versionName = "1.2-chop"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Local release signing; the key and passwords live in ~/.gradle/gradle.properties.
+    // CI passes its own signing properties instead, so this is skipped there.
+    val releaseStoreFile = providers.gradleProperty("CHOPTORCH_RELEASE_STORE_FILE").orNull
+    if (releaseStoreFile != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = providers.gradleProperty("CHOPTORCH_RELEASE_STORE_PASSWORD").get()
+                keyAlias = providers.gradleProperty("CHOPTORCH_RELEASE_KEY_ALIAS").get()
+                keyPassword = providers.gradleProperty("CHOPTORCH_RELEASE_KEY_PASSWORD").get()
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseStoreFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
