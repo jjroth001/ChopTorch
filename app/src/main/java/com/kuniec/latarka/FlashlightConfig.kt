@@ -18,6 +18,7 @@ import android.content.Context
  * @property isManualEntryMode Whether the UI should show text fields instead of sliders.
  * @property snappingStepG The step size for G-force threshold snapping.
  * @property snappingStepMs The step size for time-based parameter snapping.
+ * @property calibratedAtMs When calibration last set these values (epoch ms), or 0 if never.
  */
 data class FlashlightConfig(
     val gForceThreshold: Float = 2.0f,
@@ -30,7 +31,8 @@ data class FlashlightConfig(
     val snappingStepG: Float = 0.1f,
     val snappingStepMs: Int = 50,
     val cooldownMs: Long = 1000L,
-    val resetTimeoutMs: Long = 800L
+    val resetTimeoutMs: Long = 800L,
+    val calibratedAtMs: Long = 0L
 ) {
     companion object {
         private const val PREFS_NAME = "flashlight_prefs"
@@ -45,6 +47,7 @@ data class FlashlightConfig(
         private const val KEY_STEP_MS = "step_ms"
         private const val KEY_COOLDOWN = "cooldown"
         private const val KEY_RESET_TIMEOUT = "reset_timeout"
+        private const val KEY_CALIBRATED_AT = "calibrated_at"
 
         /**
          * Loads the [FlashlightConfig] from [android.content.SharedPreferences].
@@ -65,7 +68,8 @@ data class FlashlightConfig(
                 snappingStepG = prefs.getFloat(KEY_STEP_G, 0.1f),
                 snappingStepMs = prefs.getInt(KEY_STEP_MS, 50),
                 cooldownMs = prefs.getLong(KEY_COOLDOWN, 1000L),
-                resetTimeoutMs = prefs.getLong(KEY_RESET_TIMEOUT, 800L)
+                resetTimeoutMs = prefs.getLong(KEY_RESET_TIMEOUT, 800L),
+                calibratedAtMs = prefs.getLong(KEY_CALIBRATED_AT, 0L)
             )
         }
 
@@ -89,6 +93,7 @@ data class FlashlightConfig(
                 putInt(KEY_STEP_MS, config.snappingStepMs)
                 putLong(KEY_COOLDOWN, config.cooldownMs)
                 putLong(KEY_RESET_TIMEOUT, config.resetTimeoutMs)
+                putLong(KEY_CALIBRATED_AT, config.calibratedAtMs)
                 apply()
             }
         }

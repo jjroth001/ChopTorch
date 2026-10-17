@@ -15,8 +15,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -24,15 +32,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.kuniec.latarka.ui.theme.LatarkaTheme
+import java.text.DateFormat
+import java.util.Date
 import kotlin.math.roundToInt
 
 /**
@@ -62,7 +75,24 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background
                 ) { innerPadding ->
-                    ConfigurationScreen(modifier = Modifier.padding(innerPadding))
+                    var calibrating by rememberSaveable { mutableStateOf(false) }
+                    AnimatedContent(
+                        targetState = calibrating,
+                        transitionSpec = { fadeIn(tween(250, delayMillis = 80)) togetherWith fadeOut(tween(150)) },
+                        label = "screen"
+                    ) { showCalibration ->
+                        if (showCalibration) {
+                            CalibrationScreen(
+                                onClose = { calibrating = false },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        } else {
+                            ConfigurationScreen(
+                                onCalibrate = { calibrating = true },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -75,11 +105,12 @@ class MainActivity : ComponentActivity() {
  * It allows enabling the service, toggling features like drop prevention and
  * slider snapping, and adjusting sensitivity parameters via sliders or manual entry.
  *
+ * @param onCalibrate Opens the guided calibration.
  * @param modifier The modifier to be applied to the layout.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConfigurationScreen(modifier: Modifier = Modifier) {
+fun ConfigurationScreen(modifier: Modifier = Modifier, onCalibrate: () -> Unit = {}) {
     val context = LocalContext.current
     var config by remember { mutableStateOf(FlashlightConfig.load(context)) }
     val scrollState = rememberScrollState()
@@ -129,6 +160,8 @@ fun ConfigurationScreen(modifier: Modifier = Modifier) {
                 )
             }
         }
+
+        CalibrationCard(calibratedAtMs = config.calibratedAtMs, onCalibrate = onCalibrate)
 
         // Feature Toggles
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -509,6 +542,66 @@ fun ConfigItem(
                 }
             }
         )
+    }
+}
+
+/**
+ * Card that explains calibration, shows when it last ran, and opens it.
+ */
+@Composable
+fun CalibrationCard(calibratedAtMs: Long, onCalibrate: () -> Unit) {
+    OutlinedCard(border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_launcher_monochrome),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.calibrate_card_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = if (calibratedAtMs > 0) {
+                            stringResource(
+                                R.string.calibrate_card_done,
+                                DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(calibratedAtMs))
+                            )
+                        } else {
+                            stringResource(R.string.calibrate_card_never)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.calibrate_card_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onCalibrate, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    stringResource(
+                        if (calibratedAtMs > 0) R.string.calibrate_card_again else R.string.calibrate_card_start
+                    )
+                )
+            }
+        }
     }
 }
 

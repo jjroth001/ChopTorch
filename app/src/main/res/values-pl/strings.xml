@@ -30,4 +30,70 @@
     <string name="edit_value">Edytuj wartość</string>
     <string name="cancel">Anuluj</string>
     <string name="save">Zapisz</string>
+
+    <!-- Kalibracja -->
+    <string name="calibrate_card_title">Kalibracja dla Twojego telefonu</string>
+    <string name="calibrate_card_never">Jeszcze nie skalibrowano</string>
+    <string name="calibrate_card_done">Skalibrowano %1$s</string>
+    <string name="calibrate_card_desc">Wykonaj kilka gestów i trochę zwykłych ruchów. ChopTorch sam dobierze ustawienia siły i czasu.</string>
+    <string name="calibrate_card_start">Rozpocznij kalibrację</string>
+    <string name="calibrate_card_again">Skalibruj ponownie</string>
+    <string name="calibrate_title">Kalibracja</string>
+    <string name="calibrate_close">Zamknij</string>
+    <string name="calibrate_step">Krok %1$d z %2$d</string>
+    <plurals name="calibrate_chops_title">
+        <item quantity="one">Wykonaj gest %1$d raz</item>
+        <item quantity="few">Wykonaj gest %1$d razy</item>
+        <item quantity="many">Wykonaj gest %1$d razy</item>
+        <item quantity="other">Wykonaj gest %1$d razy</item>
+    </plurals>
+    <string name="calibrate_chops_body">Trzymaj telefon tak jak zwykle i wykonaj swój zwykły gest „chop-chop”. Zrób krótką przerwę po każdym.</string>
+    <string name="calibrate_chops_waiting">Czekam na pierwszy gest</string>
+    <string name="calibrate_chops_progress">%1$d z %2$d, tak dalej</string>
+    <string name="calibrate_chops_done">Wszystkie zapisane</string>
+    <string name="calibrate_chops_hint">Telefon zawibruje po każdym rozpoznanym geście</string>
+    <string name="calibrate_chops_strength">Siła gestu</string>
+    <string name="calibrate_start_over">Zacznij od nowa</string>
+    <string name="calibrate_g">%1$.1f g</string>
+    <string name="calibrate_under_g">Poniżej %1$.1f g</string>
+    <string name="calibrate_g_unit">g</string>
+    <string name="calibrate_ms">%1$d ms</string>
+    <string name="calibrate_everyday_title">Teraz ruszaj się normalnie</string>
+    <plurals name="calibrate_everyday_body">
+        <item quantity="one">Przez %1$d sekundę rób codzienne rzeczy: chodź, włóż telefon do kieszeni, wyjmij go, odłóż. Nie wykonuj gestu.</item>
+        <item quantity="few">Przez %1$d sekundy rób codzienne rzeczy: chodź, włóż telefon do kieszeni, wyjmij go, odłóż. Nie wykonuj gestu.</item>
+        <item quantity="many">Przez %1$d sekund rób codzienne rzeczy: chodź, włóż telefon do kieszeni, wyjmij go, odłóż. Nie wykonuj gestu.</item>
+        <item quantity="other">Przez %1$d sekundy rób codzienne rzeczy: chodź, włóż telefon do kieszeni, wyjmij go, odłóż. Nie wykonuj gestu.</item>
+    </plurals>
+    <string name="calibrate_time_left">%1$d:%2$02d</string>
+    <string name="calibrate_left">pozostało</string>
+    <string name="calibrate_everyday_strongest">Najsilniejszy ruch do tej pory</string>
+    <string name="calibrate_everyday_note">Ekran pozostaje włączony podczas tego kroku.</string>
+    <string name="calibrate_skip">Pomiń ten krok</string>
+    <string name="calibrate_results_title">Oto wyniki</string>
+    <string name="calibrate_margin_plenty">Twoje gesty wyraźnie różnią się od codziennych ruchów.</string>
+    <string name="calibrate_margin_tight">Twoje gesty są tylko trochę silniejsze od codziennych ruchów. Powinno działać, ale mocniejsze gesty będą pewniejsze.</string>
+    <string name="calibrate_margin_overlap">Niektóre codzienne ruchy były tak silne jak Twoje gesty, więc latarka może włączyć się przypadkiem. Spróbuj skalibrować ponownie z mocniejszymi gestami.</string>
+    <string name="calibrate_margin_unknown">Te ustawienia opierają się tylko na Twoich gestach. Wykonaj też krok z codziennymi ruchami, aby były bezpieczniejsze.</string>
+    <string name="calibrate_chart_title">Siła ruchu</string>
+    <string name="calibrate_chart_everyday">Codzienne</string>
+    <string name="calibrate_chart_chops">Twoje gesty</string>
+    <string name="calibrate_chart_trigger">Próg %1$.1f g</string>
+    <string name="calibrate_new_settings">Nowe ustawienia</string>
+    <string name="calibrate_row_strength">Siła gestu</string>
+    <string name="calibrate_row_shortest">Najkrótsza przerwa</string>
+    <string name="calibrate_row_longest">Najdłuższa przerwa</string>
+    <string name="calibrate_try">Najpierw wypróbuj</string>
+    <string name="calibrate_save">Zapisz</string>
+    <string name="calibrate_keep_old">Zachowaj stare ustawienia</string>
+    <string name="calibrate_try_title">Wypróbuj</string>
+    <string name="calibrate_try_body">Wykonaj gest tak jak przed chwilą. Latarka się tu nie włączy; licznik rośnie za każdym razem, gdy ChopTorch by ją przełączył. Zwykłe ruchy nie powinny być liczone.</string>
+    <string name="calibrate_try_waiting">Czekam na gest</string>
+    <string name="calibrate_back">Wstecz</string>
+    <plurals name="calibrate_try_count">
+        <item quantity="one">Rozpoznano %1$d raz</item>
+        <item quantity="few">Rozpoznano %1$d razy</item>
+        <item quantity="many">Rozpoznano %1$d razy</item>
+        <item quantity="other">Rozpoznano %1$d razy</item>
+    </plurals>
 </resources>

@@ -74,6 +74,8 @@ class ShakeDetectionService : Service(), SensorEventListener {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onSensorChanged(event: SensorEvent?) {
+        // The calibration screen is listening; a chop there must not toggle the light.
+        if (CalibrationGate.isActive) return
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
             val shouldToggle = shakeDetector.onSensorChanged(
                 event.values[0],
@@ -97,6 +99,8 @@ class ShakeDetectionService : Service(), SensorEventListener {
     }
 
     private fun createNotificationChannel() {
+        // Channels exist from Android 8; before that the notification needs none.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             CHANNEL_ID,
             getString(R.string.notification_channel_name),

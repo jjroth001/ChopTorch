@@ -24,7 +24,7 @@ import kotlin.math.sqrt
  */
 class ShakeDetector(private var config: FlashlightConfig) {
 
-    private companion object {
+    internal companion object {
         /** Low-pass time constant for the gravity estimate, in seconds. */
         const val GRAVITY_TAU_S = 0.25f
 

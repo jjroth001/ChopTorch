@@ -30,4 +30,64 @@
     <string name="edit_value">Edit Value</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
+
+    <!-- Calibration -->
+    <string name="calibrate_card_title">Calibrate for your phone</string>
+    <string name="calibrate_card_never">Not calibrated yet</string>
+    <string name="calibrate_card_done">Calibrated %1$s</string>
+    <string name="calibrate_card_desc">Do a few chops and some everyday moving around. ChopTorch picks the strength and timing settings for you.</string>
+    <string name="calibrate_card_start">Start calibration</string>
+    <string name="calibrate_card_again">Calibrate again</string>
+    <string name="calibrate_title">Calibrate</string>
+    <string name="calibrate_close">Close</string>
+    <string name="calibrate_step">Step %1$d of %2$d</string>
+    <plurals name="calibrate_chops_title">
+        <item quantity="one">Chop-chop %1$d time</item>
+        <item quantity="other">Chop-chop %1$d times</item>
+    </plurals>
+    <string name="calibrate_chops_body">Hold the phone the way you usually do and do your normal chop-chop. Pause a moment between each one.</string>
+    <string name="calibrate_chops_waiting">Waiting for your first chop-chop</string>
+    <string name="calibrate_chops_progress">%1$d of %2$d, keep going</string>
+    <string name="calibrate_chops_done">Got them all</string>
+    <string name="calibrate_chops_hint">The phone buzzes each time it hears one</string>
+    <string name="calibrate_chops_strength">Chop strength</string>
+    <string name="calibrate_start_over">Start over</string>
+    <string name="calibrate_g">%1$.1f g</string>
+    <string name="calibrate_under_g">Under %1$.1f g</string>
+    <string name="calibrate_g_unit">g</string>
+    <string name="calibrate_ms">%1$d ms</string>
+    <string name="calibrate_everyday_title">Now move normally</string>
+    <plurals name="calibrate_everyday_body">
+        <item quantity="one">For %1$d second, do everyday things: walk around, put the phone in your pocket, take it out, set it down. Don\'t chop.</item>
+        <item quantity="other">For %1$d seconds, do everyday things: walk around, put the phone in your pocket, take it out, set it down. Don\'t chop.</item>
+    </plurals>
+    <string name="calibrate_time_left">%1$d:%2$02d</string>
+    <string name="calibrate_left">left</string>
+    <string name="calibrate_everyday_strongest">Strongest shake so far</string>
+    <string name="calibrate_everyday_note">The screen stays on during this step.</string>
+    <string name="calibrate_skip">Skip this step</string>
+    <string name="calibrate_results_title">Here\'s what we learned</string>
+    <string name="calibrate_margin_plenty">There\'s plenty of room between your chops and everyday movement.</string>
+    <string name="calibrate_margin_tight">Your chops are only a little stronger than everyday movement. It should work, but firmer chops will make it more reliable.</string>
+    <string name="calibrate_margin_overlap">Some everyday movement was as strong as your chops, so the light might turn on by accident. Try calibrating again with firmer chops.</string>
+    <string name="calibrate_margin_unknown">These settings are based on your chops only. Do the everyday step too for a safer setting.</string>
+    <string name="calibrate_chart_title">Movement strength</string>
+    <string name="calibrate_chart_everyday">Everyday</string>
+    <string name="calibrate_chart_chops">Your chops</string>
+    <string name="calibrate_chart_trigger">Trigger %1$.1f g</string>
+    <string name="calibrate_new_settings">New settings</string>
+    <string name="calibrate_row_strength">Chop strength</string>
+    <string name="calibrate_row_shortest">Shortest gap</string>
+    <string name="calibrate_row_longest">Longest gap</string>
+    <string name="calibrate_try">Try it first</string>
+    <string name="calibrate_save">Save</string>
+    <string name="calibrate_keep_old">Keep my old settings</string>
+    <string name="calibrate_try_title">Try it</string>
+    <string name="calibrate_try_body">Chop-chop the way you just did. The light stays off here; the count goes up each time ChopTorch would switch it. Moving normally shouldn\'t count.</string>
+    <string name="calibrate_try_waiting">Waiting for a chop-chop</string>
+    <string name="calibrate_back">Back</string>
+    <plurals name="calibrate_try_count">
+        <item quantity="one">Detected %1$d time</item>
+        <item quantity="other">Detected %1$d times</item>
+    </plurals>
 </resources>
