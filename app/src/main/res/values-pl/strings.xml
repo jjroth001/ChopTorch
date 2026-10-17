@@ -71,16 +71,6 @@
     <string name="calibrate_everyday_note">Ekran pozostaje włączony podczas tego kroku.</string>
     <string name="calibrate_skip">Pomiń ten krok</string>
     <string name="calibrate_results_title">Oto wyniki</string>
-    <string name="calibrate_margin_plenty">Twoje gesty wyraźnie różnią się od codziennych ruchów.</string>
-    <string name="calibrate_margin_tight">Twoje gesty są tylko trochę silniejsze od codziennych ruchów. Powinno działać, ale mocniejsze gesty będą pewniejsze.</string>
-    <string name="calibrate_margin_overlap">Niektóre codzienne ruchy były tak silne jak Twoje gesty, więc latarka może włączyć się przypadkiem. Spróbuj skalibrować ponownie z mocniejszymi gestami.</string>
-    <string name="calibrate_margin_unknown">Te ustawienia opierają się tylko na Twoich gestach. Wykonaj też krok z codziennymi ruchami, aby były bezpieczniejsze.</string>
-    <string name="calibrate_chart_title">Siła ruchu</string>
-    <string name="calibrate_chart_everyday">Codzienne</string>
-    <string name="calibrate_chart_chops">Twoje gesty</string>
-    <string name="calibrate_chart_trigger">Próg %1$.1f g</string>
-    <string name="calibrate_new_settings">Nowe ustawienia</string>
-    <string name="calibrate_row_strength">Siła gestu</string>
     <string name="calibrate_row_shortest">Najkrótsza przerwa</string>
     <string name="calibrate_row_longest">Najdłuższa przerwa</string>
     <string name="calibrate_try">Najpierw wypróbuj</string>
@@ -95,5 +85,46 @@
         <item quantity="few">Rozpoznano %1$d razy</item>
         <item quantity="many">Rozpoznano %1$d razy</item>
         <item quantity="other">Rozpoznano %1$d razy</item>
+    </plurals>
+    <string name="calibrate_tuning">Sprawdzam ustawienia na Twoich nagraniach…</string>
+    <string name="calibrate_stat_caught">%1$d z %2$d</string>
+    <string name="calibrate_stat_caught_label">rozpoznanych gestów</string>
+    <string name="calibrate_stat_accidental_label">przypadkowych włączeń</string>
+    <string name="calibrate_stat_unchecked_label">nie sprawdzono</string>
+    <string name="calibrate_sensitivity">Czułość</string>
+    <string name="calibrate_trigger">Próg %1$.1f g</string>
+    <string name="calibrate_recommended">Zalecane</string>
+    <string name="calibrate_more_sensitive">Czulej</string>
+    <string name="calibrate_fewer_accidents">Mniej pomyłek</string>
+    <string name="calibrate_safe_range">Bezpieczny zakres %1$.1f–%2$.1f g. Każda wartość w nim działa.</string>
+    <string name="calibrate_safe_unchecked">Codzienne ruchy nie zostały sprawdzone, więc przy wyższej czułości latarka może włączyć się przypadkiem.</string>
+    <string name="calibrate_no_safe">Żadne ustawienie nie rozpoznało wszystkich gestów bez pomyłek. Ponowna kalibracja z mocniejszymi gestami może pomóc.</string>
+    <string name="calibrate_learned">Czego nauczył się ChopTorch</string>
+    <string name="calibrate_row_direction">Kierunek gestu</string>
+    <string name="calibrate_was">Wcześniej: %1$s</string>
+    <string name="calibrate_row_snap">Czas powrotu</string>
+    <string name="calibrate_row_snap_desc">Od zamachu do powrotu, z zapasem</string>
+    <string name="calibrate_row_clean">Czysty gest</string>
+    <string name="calibrate_row_clean_desc">Jaka część ruchu idzie w jednym kierunku</string>
+    <string name="calibrate_percent">%1$d%%</string>
+    <string name="calibrate_axis_x">Na boki</string>
+    <string name="calibrate_axis_y">Góra–dół</string>
+    <string name="calibrate_axis_z">Do siebie i od siebie</string>
+    <string name="calibrate_axis_any">Dowolny kierunek</string>
+    <string name="calibrate_axis_two">%1$s lub %2$s</string>
+    <string name="calibrate_axis_x_desc">W poprzek ekranu</string>
+    <string name="calibrate_axis_y_desc">Wzdłuż dłuższego boku</string>
+    <string name="calibrate_axis_z_desc">Prostopadle do ekranu</string>
+    <plurals name="calibrate_too_sensitive">
+        <item quantity="one">Za czułe: codzienne ruchy włączyły latarkę %1$d raz w %2$d sekund.</item>
+        <item quantity="few">Za czułe: codzienne ruchy włączyły latarkę %1$d razy w %2$d sekund.</item>
+        <item quantity="many">Za czułe: codzienne ruchy włączyły latarkę %1$d razy w %2$d sekund.</item>
+        <item quantity="other">Za czułe: codzienne ruchy włączyły latarkę %1$d razy w %2$d sekund.</item>
+    </plurals>
+    <plurals name="calibrate_too_strict">
+        <item quantity="one">Za mało czułe: %1$d gest zostałby pominięty.</item>
+        <item quantity="few">Za mało czułe: %1$d gesty zostałyby pominięte.</item>
+        <item quantity="many">Za mało czułe: %1$d gestów zostałoby pominiętych.</item>
+        <item quantity="other">Za mało czułe: %1$d gestu zostałoby pominięte.</item>
     </plurals>
 </resources>

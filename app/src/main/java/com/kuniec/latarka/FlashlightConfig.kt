@@ -19,6 +19,9 @@ import android.content.Context
  * @property snappingStepG The step size for G-force threshold snapping.
  * @property snappingStepMs The step size for time-based parameter snapping.
  * @property calibratedAtMs When calibration last set these values (epoch ms), or 0 if never.
+ * @property reversalWindowMs Longest time from a chop's swing to its snap-back.
+ * @property dominanceRatio Share of the movement that must be on the chop's axis.
+ * @property chopAxes Axes a chop may happen on, as a mask of [AXIS_X], [AXIS_Y] and [AXIS_Z].
  */
 data class FlashlightConfig(
     val gForceThreshold: Float = 2.0f,
@@ -32,9 +35,20 @@ data class FlashlightConfig(
     val snappingStepMs: Int = 50,
     val cooldownMs: Long = 1000L,
     val resetTimeoutMs: Long = 800L,
-    val calibratedAtMs: Long = 0L
+    val calibratedAtMs: Long = 0L,
+    val reversalWindowMs: Long = 300L,
+    val dominanceRatio: Float = 0.6f,
+    val chopAxes: Int = AXIS_ALL
 ) {
     companion object {
+        /** Across the screen, left to right. */
+        const val AXIS_X = 1
+        /** Along the long side of the phone. */
+        const val AXIS_Y = 2
+        /** Through the screen, toward and away from you. */
+        const val AXIS_Z = 4
+        const val AXIS_ALL = AXIS_X or AXIS_Y or AXIS_Z
+
         private const val PREFS_NAME = "flashlight_prefs"
         private const val KEY_THRESHOLD = "threshold"
         private const val KEY_DELAY = "delay"
@@ -48,6 +62,9 @@ data class FlashlightConfig(
         private const val KEY_COOLDOWN = "cooldown"
         private const val KEY_RESET_TIMEOUT = "reset_timeout"
         private const val KEY_CALIBRATED_AT = "calibrated_at"
+        private const val KEY_REVERSAL_WINDOW = "reversal_window"
+        private const val KEY_DOMINANCE = "dominance"
+        private const val KEY_CHOP_AXES = "chop_axes"
 
         /**
          * Loads the [FlashlightConfig] from [android.content.SharedPreferences].
@@ -69,7 +86,10 @@ data class FlashlightConfig(
                 snappingStepMs = prefs.getInt(KEY_STEP_MS, 50),
                 cooldownMs = prefs.getLong(KEY_COOLDOWN, 1000L),
                 resetTimeoutMs = prefs.getLong(KEY_RESET_TIMEOUT, 800L),
-                calibratedAtMs = prefs.getLong(KEY_CALIBRATED_AT, 0L)
+                calibratedAtMs = prefs.getLong(KEY_CALIBRATED_AT, 0L),
+                reversalWindowMs = prefs.getLong(KEY_REVERSAL_WINDOW, 300L),
+                dominanceRatio = prefs.getFloat(KEY_DOMINANCE, 0.6f),
+                chopAxes = prefs.getInt(KEY_CHOP_AXES, AXIS_ALL)
             )
         }
 
@@ -94,6 +114,9 @@ data class FlashlightConfig(
                 putLong(KEY_COOLDOWN, config.cooldownMs)
                 putLong(KEY_RESET_TIMEOUT, config.resetTimeoutMs)
                 putLong(KEY_CALIBRATED_AT, config.calibratedAtMs)
+                putLong(KEY_REVERSAL_WINDOW, config.reversalWindowMs)
+                putFloat(KEY_DOMINANCE, config.dominanceRatio)
+                putInt(KEY_CHOP_AXES, config.chopAxes)
                 apply()
             }
         }

@@ -67,16 +67,6 @@
     <string name="calibrate_everyday_note">The screen stays on during this step.</string>
     <string name="calibrate_skip">Skip this step</string>
     <string name="calibrate_results_title">Here\'s what we learned</string>
-    <string name="calibrate_margin_plenty">There\'s plenty of room between your chops and everyday movement.</string>
-    <string name="calibrate_margin_tight">Your chops are only a little stronger than everyday movement. It should work, but firmer chops will make it more reliable.</string>
-    <string name="calibrate_margin_overlap">Some everyday movement was as strong as your chops, so the light might turn on by accident. Try calibrating again with firmer chops.</string>
-    <string name="calibrate_margin_unknown">These settings are based on your chops only. Do the everyday step too for a safer setting.</string>
-    <string name="calibrate_chart_title">Movement strength</string>
-    <string name="calibrate_chart_everyday">Everyday</string>
-    <string name="calibrate_chart_chops">Your chops</string>
-    <string name="calibrate_chart_trigger">Trigger %1$.1f g</string>
-    <string name="calibrate_new_settings">New settings</string>
-    <string name="calibrate_row_strength">Chop strength</string>
     <string name="calibrate_row_shortest">Shortest gap</string>
     <string name="calibrate_row_longest">Longest gap</string>
     <string name="calibrate_try">Try it first</string>
@@ -89,5 +79,42 @@
     <plurals name="calibrate_try_count">
         <item quantity="one">Detected %1$d time</item>
         <item quantity="other">Detected %1$d times</item>
+    </plurals>
+    <string name="calibrate_tuning">Trying settings on your recordings…</string>
+    <string name="calibrate_stat_caught">%1$d of %2$d</string>
+    <string name="calibrate_stat_caught_label">chop-chops caught</string>
+    <string name="calibrate_stat_accidental_label">accidental triggers</string>
+    <string name="calibrate_stat_unchecked_label">accidents not checked</string>
+    <string name="calibrate_sensitivity">Sensitivity</string>
+    <string name="calibrate_trigger">Trigger %1$.1f g</string>
+    <string name="calibrate_recommended">Recommended</string>
+    <string name="calibrate_more_sensitive">More sensitive</string>
+    <string name="calibrate_fewer_accidents">Fewer accidents</string>
+    <string name="calibrate_safe_range">Safe range %1$.1f–%2$.1f g. Anywhere in it works.</string>
+    <string name="calibrate_safe_unchecked">Everyday movement wasn\'t checked, so the sensitive end might set it off by accident.</string>
+    <string name="calibrate_no_safe">No setting caught every chop-chop without any accidents. Calibrating again with firmer chops may help.</string>
+    <string name="calibrate_learned">What ChopTorch learned</string>
+    <string name="calibrate_row_direction">Chop direction</string>
+    <string name="calibrate_was">Was: %1$s</string>
+    <string name="calibrate_row_snap">Snap-back time</string>
+    <string name="calibrate_row_snap_desc">Swing to snap-back, with room to spare</string>
+    <string name="calibrate_row_clean">Clean chop</string>
+    <string name="calibrate_row_clean_desc">How much of the move goes one way</string>
+    <string name="calibrate_percent">%1$d%%</string>
+    <string name="calibrate_axis_x">Side to side</string>
+    <string name="calibrate_axis_y">Up and down</string>
+    <string name="calibrate_axis_z">Toward and away</string>
+    <string name="calibrate_axis_any">Any direction</string>
+    <string name="calibrate_axis_two">%1$s or %2$s</string>
+    <string name="calibrate_axis_x_desc">Across the screen</string>
+    <string name="calibrate_axis_y_desc">Along the long side</string>
+    <string name="calibrate_axis_z_desc">Through the screen</string>
+    <plurals name="calibrate_too_sensitive">
+        <item quantity="one">Too sensitive: everyday movement set it off %1$d time in %2$d seconds.</item>
+        <item quantity="other">Too sensitive: everyday movement set it off %1$d times in %2$d seconds.</item>
+    </plurals>
+    <plurals name="calibrate_too_strict">
+        <item quantity="one">Too strict: %1$d of your chop-chops would have been missed.</item>
+        <item quantity="other">Too strict: %1$d of your chop-chops would have been missed.</item>
     </plurals>
 </resources>

@@ -71,6 +71,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.max
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 /** Lets the background service ignore chops while calibration is listening. */
 object CalibrationGate {
@@ -83,31 +96,44 @@ private const val EVERYDAY_SECONDS = 20
 private const val SPARK_INTERVAL_MS = 200L
 private const val SPARK_SAMPLES = (EVERYDAY_SECONDS * 1000 / SPARK_INTERVAL_MS).toInt()
 
-private enum class Step { CHOPS, EVERYDAY, RESULTS, TRY }
+private enum class Step { CHOPS, EVERYDAY, TUNING, RESULTS, TRY }
 
 /**
  * Guided calibration: the user chop-chops a few times, then moves normally for a while, and
- * ChopTorch suggests a threshold and timing that fit. Nothing is saved until they choose Save.
+ * ChopTorch tries settings on both recordings to find ones that fit. Nothing is saved until they
+ * choose Save.
  */
 @Composable
 fun CalibrationScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val startConfig = remember { FlashlightConfig.load(context) }
     val collector = remember { ChopGestureCollector(startConfig.shakeCount) }
     val gestureStrengths = remember { mutableStateListOf<Float>() }
+    var chopRecording by remember { mutableStateOf(MotionRecording()) }
     var step by remember { mutableStateOf(Step.CHOPS) }
     var result by remember { mutableStateOf<Calibration.Result?>(null) }
+    var chosenG by remember { mutableFloatStateOf(startConfig.gForceThreshold) }
 
     CalibrationSession()
     BackHandler { if (step == Step.TRY) step = Step.RESULTS else onClose() }
 
-    fun showResults(everydayG: Float?) {
-        result = Calibration.compute(collector.gestures, everydayG, startConfig, System.currentTimeMillis())
-        step = Step.RESULTS
+    fun showResults(everyday: MotionRecording?) {
+        step = Step.TUNING
+        scope.launch {
+            val tuned = withContext(Dispatchers.Default) {
+                Calibration.tune(chopRecording, collector.gestures, everyday, startConfig, System.currentTimeMillis())
+            }
+            // Long enough to read, so the step doesn't flash past.
+            delay(600)
+            result = tuned
+            chosenG = tuned.recommendedG
+            step = Step.RESULTS
+        }
     }
 
     fun save() {
-        result?.let { FlashlightConfig.save(context, it.config) }
+        result?.let { FlashlightConfig.save(context, it.configAt(chosenG)) }
         // The settings screen restarts the service when it reappears, which reloads these values.
         onClose()
     }
@@ -138,20 +164,25 @@ fun CalibrationScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                 Step.CHOPS -> ChopsStep(
                     collector = collector,
                     strengths = gestureStrengths,
+                    recording = chopRecording,
+                    onStartOver = { chopRecording = MotionRecording() },
                     onDone = { step = Step.EVERYDAY }
                 )
                 Step.EVERYDAY -> EverydayStep(onDone = ::showResults)
+                Step.TUNING -> TuningStep()
                 Step.RESULTS -> result?.let {
                     ResultsStep(
                         result = it,
                         old = startConfig,
+                        chosenG = chosenG,
+                        onChoose = { g -> chosenG = g },
                         onTry = { step = Step.TRY },
                         onSave = ::save,
                         onKeepOld = onClose
                     )
                 }
                 Step.TRY -> result?.let {
-                    TryStep(config = it.config, onBack = { step = Step.RESULTS }, onSave = ::save)
+                    TryStep(config = it.configAt(chosenG), onBack = { step = Step.RESULTS }, onSave = ::save)
                 }
             }
         }
@@ -307,6 +338,8 @@ private fun PulsingTorch(pulse: Int, modifier: Modifier = Modifier) {
 private fun ChopsStep(
     collector: ChopGestureCollector,
     strengths: SnapshotStateList<Float>,
+    recording: MotionRecording,
+    onStartOver: () -> Unit,
     onDone: () -> Unit
 ) {
     val view = LocalView.current
@@ -314,6 +347,8 @@ private fun ChopsStep(
     var pulse by remember { mutableIntStateOf(0) }
 
     AccelerometerListener { x, y, z, t ->
+        // Keep recording until the step ends, so the last chop-chop is complete when replayed.
+        recording.add(x, y, z, t)
         if (strengths.size >= GESTURES_NEEDED) return@AccelerometerListener
         val chop = recorder.onSensorChanged(x, y, z, t) ?: return@AccelerometerListener
         val gesture = collector.add(chop) ?: return@AccelerometerListener
@@ -384,6 +419,7 @@ private fun ChopsStep(
                 collector.reset()
                 strengths.clear()
                 recorder = ChopRecorder()
+                onStartOver()
             },
             enabled = strengths.isNotEmpty() && strengths.size < GESTURES_NEEDED,
             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -460,8 +496,9 @@ private fun StrengthBar(strengthG: Float?, scaleMax: Float) {
 }
 
 @Composable
-private fun EverydayStep(onDone: (Float?) -> Unit) {
+private fun EverydayStep(onDone: (MotionRecording?) -> Unit) {
     val recorder = remember { ChopRecorder() }
+    val recording = remember { MotionRecording() }
     var strongest by remember { mutableFloatStateOf(0f) }
     var secondsLeft by remember { mutableIntStateOf(EVERYDAY_SECONDS) }
     val spark = remember { mutableStateListOf<Float>() }
@@ -469,6 +506,7 @@ private fun EverydayStep(onDone: (Float?) -> Unit) {
     val progress = remember { Animatable(0f) }
 
     AccelerometerListener { x, y, z, t ->
+        recording.add(x, y, z, t)
         recorder.onSensorChanged(x, y, z, t)?.let { strongest = max(strongest, it.strengthG) }
         bucket[0] = max(bucket[0], recorder.movementG)
     }
@@ -486,7 +524,7 @@ private fun EverydayStep(onDone: (Float?) -> Unit) {
             delay(1000)
             secondsLeft--
         }
-        onDone(strongest)
+        onDone(recording)
     }
 
     StepColumn {
@@ -577,43 +615,150 @@ private fun EverydayStep(onDone: (Float?) -> Unit) {
 }
 
 @Composable
+private fun TuningStep() {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator()
+        Spacer(Modifier.height(20.dp))
+        Text(
+            stringResource(R.string.calibrate_tuning),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
 private fun ResultsStep(
     result: Calibration.Result,
     old: FlashlightConfig,
+    chosenG: Float,
+    onChoose: (Float) -> Unit,
     onTry: () -> Unit,
     onSave: () -> Unit,
     onKeepOld: () -> Unit
 ) {
+    val i = result.indexOf(chosenG)
+    val caught = result.caught[i]
+    val accidental = result.accidental?.get(i)
+    val missed = result.gestureCount - caught
+    val new = result.configAt(chosenG)
+
     StepColumn {
         StepHeader(3)
-        StepTitle(
+        Text(
             stringResource(R.string.calibrate_results_title),
-            stringResource(
-                when (result.margin) {
-                    Calibration.Margin.PLENTY -> R.string.calibrate_margin_plenty
-                    Calibration.Margin.TIGHT -> R.string.calibrate_margin_tight
-                    Calibration.Margin.OVERLAP -> R.string.calibrate_margin_overlap
-                    Calibration.Margin.UNKNOWN -> R.string.calibrate_margin_unknown
-                }
-            )
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.height(20.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            StatCard(
+                value = stringResource(R.string.calibrate_stat_caught, caught, result.gestureCount),
+                label = stringResource(R.string.calibrate_stat_caught_label),
+                warning = if (missed > 0) StatWarning.MISSED else null,
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                value = accidental?.toString() ?: "–",
+                label = stringResource(
+                    if (accidental == null) R.string.calibrate_stat_unchecked_label
+                    else R.string.calibrate_stat_accidental_label
+                ),
+                warning = if ((accidental ?: 0) > 0) StatWarning.ACCIDENTAL else null,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
             Column(Modifier.padding(16.dp)) {
-                Text(stringResource(R.string.calibrate_chart_title), style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(8.dp))
-                StrengthChart(result)
+                Row {
+                    Text(
+                        stringResource(R.string.calibrate_sensitivity),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    val triggerColor by animateColorAsState(
+                        when {
+                            (accidental ?: 0) > 0 -> MaterialTheme.colorScheme.error
+                            missed > 0 -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.primary
+                        },
+                        label = "triggerColor"
+                    )
+                    Text(
+                        stringResource(R.string.calibrate_trigger, new.gForceThreshold),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = triggerColor
+                    )
+                }
+                Spacer(Modifier.height(20.dp))
+                SensitivitySlider(result, chosenG, onChoose)
+                Spacer(Modifier.height(12.dp))
+                val messages = buildList {
+                    if (accidental != null && accidental > 0) {
+                        add(pluralStringResource(R.plurals.calibrate_too_sensitive, accidental, accidental, EVERYDAY_SECONDS) to MaterialTheme.colorScheme.error)
+                    }
+                    if (missed > 0) {
+                        add(pluralStringResource(R.plurals.calibrate_too_strict, missed, missed) to MaterialTheme.colorScheme.tertiary)
+                    }
+                    if (isEmpty()) {
+                        val safe = result.safeRange
+                        val text = when {
+                            safe == null -> stringResource(R.string.calibrate_no_safe)
+                            accidental == null -> stringResource(R.string.calibrate_safe_unchecked)
+                            else -> stringResource(R.string.calibrate_safe_range, safe.start, safe.endInclusive)
+                        }
+                        add(text to MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                messages.forEach { (text, color) ->
+                    Text(text, style = MaterialTheme.typography.bodySmall, color = color)
+                }
             }
         }
+        if (result.safeRange == null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.calibrate_no_safe),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         Spacer(Modifier.height(24.dp))
-        Text(stringResource(R.string.calibrate_new_settings), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.calibrate_learned), style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(8.dp))
-        val new = result.config
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val newAxes = axesLabel(new.chopAxes)
+            val oldAxes = axesLabel(old.chopAxes)
             ChangeRow(
-                stringResource(R.string.calibrate_row_strength),
-                stringResource(R.string.calibrate_g, old.gForceThreshold),
-                stringResource(R.string.calibrate_g, new.gForceThreshold)
+                stringResource(R.string.calibrate_row_direction),
+                oldValue = null,
+                newValue = newAxes,
+                description = listOfNotNull(
+                    axesDescription(new.chopAxes),
+                    if (oldAxes != newAxes) stringResource(R.string.calibrate_was, oldAxes.lowercase()) else null
+                ).joinToString(". ")
+            )
+            ChangeRow(
+                stringResource(R.string.calibrate_row_snap),
+                stringResource(R.string.calibrate_ms, old.reversalWindowMs),
+                stringResource(R.string.calibrate_ms, new.reversalWindowMs),
+                stringResource(R.string.calibrate_row_snap_desc)
+            )
+            ChangeRow(
+                stringResource(R.string.calibrate_row_clean),
+                stringResource(R.string.calibrate_percent, (old.dominanceRatio * 100).roundToInt()),
+                stringResource(R.string.calibrate_percent, (new.dominanceRatio * 100).roundToInt()),
+                stringResource(R.string.calibrate_row_clean_desc)
             )
             ChangeRow(
                 stringResource(R.string.calibrate_row_shortest),
@@ -641,66 +786,192 @@ private fun ResultsStep(
     }
 }
 
-/** Everyday movement, the user's chops and the new trigger point on one 0–N g scale. */
+private enum class StatWarning { MISSED, ACCIDENTAL }
+
 @Composable
-private fun StrengthChart(result: Calibration.Result) {
+private fun StatCard(value: String, label: String, warning: StatWarning?, modifier: Modifier = Modifier) {
+    val container by animateColorAsState(
+        when (warning) {
+            StatWarning.ACCIDENTAL -> MaterialTheme.colorScheme.errorContainer
+            StatWarning.MISSED -> MaterialTheme.colorScheme.tertiaryContainer
+            null -> MaterialTheme.colorScheme.surfaceContainerLow
+        },
+        animationSpec = tween(250),
+        label = "statContainer"
+    )
+    val content = when (warning) {
+        StatWarning.ACCIDENTAL -> MaterialTheme.colorScheme.onErrorContainer
+        StatWarning.MISSED -> MaterialTheme.colorScheme.onTertiaryContainer
+        null -> MaterialTheme.colorScheme.onSurface
+    }
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(container)
+            .padding(16.dp)
+    ) {
+        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = content)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = content.copy(alpha = 0.8f))
+    }
+}
+
+/**
+ * A 1–5 g slider whose track is coloured by what each threshold would do on the recordings:
+ * accidents (red), safe (green) or missed chop-chops (amber). Snaps to 0.1 g.
+ */
+@Composable
+private fun SensitivitySlider(result: Calibration.Result, chosenG: Float, onChoose: (Float) -> Unit) {
+    val view = LocalView.current
+    val scope = rememberCoroutineScope()
     val measurer = rememberTextMeasurer()
-    val everydayLabel = stringResource(R.string.calibrate_chart_everyday)
-    val chopsLabel = stringResource(R.string.calibrate_chart_chops)
-    val triggerLabel = stringResource(R.string.calibrate_chart_trigger, result.config.gForceThreshold)
-    val unit = stringResource(R.string.calibrate_g_unit)
+    val current by rememberUpdatedState(chosenG)
+    val onChange by rememberUpdatedState(onChoose)
+    val position = remember { Animatable(chosenG) }
+    LaunchedEffect(chosenG) {
+        if (position.targetValue != chosenG) position.animateTo(chosenG, spring(stiffness = Spring.StiffnessMediumLow))
+    }
+
+    val safeColor = MaterialTheme.colorScheme.primaryContainer
+    val accidentColor = MaterialTheme.colorScheme.errorContainer
+    val missColor = MaterialTheme.colorScheme.tertiaryContainer
+    val outline = MaterialTheme.colorScheme.primary
+    val thumb = MaterialTheme.colorScheme.primary
+    val thumbBorder = MaterialTheme.colorScheme.surface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val primary = MaterialTheme.colorScheme.primary
-    val everydayColor = MaterialTheme.colorScheme.secondaryContainer
-    val axis = MaterialTheme.colorScheme.outlineVariant
-    val trigger = MaterialTheme.colorScheme.tertiary
+    val recommendedLabel = stringResource(R.string.calibrate_recommended)
+    val moreSensitive = stringResource(R.string.calibrate_more_sensitive)
+    val fewerAccidents = stringResource(R.string.calibrate_fewer_accidents)
+    val unit = stringResource(R.string.calibrate_g_unit)
     val small = TextStyle(fontSize = 11.sp, color = muted)
+    val description = stringResource(R.string.calibrate_trigger, chosenG)
+
+    val pad = 14.dp
+    fun valueAt(x: Float, width: Float, padPx: Float): Float {
+        val f = ((x - padPx) / (width - 2 * padPx)).coerceIn(0f, 1f)
+        val g = Calibration.MIN_THRESHOLD_G + f * (Calibration.MAX_THRESHOLD_G - Calibration.MIN_THRESHOLD_G)
+        return Calibration.thresholds[result.indexOf(g)]
+    }
+    fun choose(g: Float) {
+        if (g != current) {
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            onChange(g)
+        }
+    }
 
     Canvas(
         Modifier
             .fillMaxWidth()
-            .height(128.dp)
+            .height(92.dp)
+            .semantics {
+                contentDescription = description
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    chosenG, Calibration.MIN_THRESHOLD_G..Calibration.MAX_THRESHOLD_G, steps = 39
+                )
+                setProgress { g ->
+                    choose(Calibration.thresholds[result.indexOf(g)])
+                    true
+                }
+            }
+            .pointerInput(result) {
+                detectTapGestures { offset ->
+                    choose(valueAt(offset.x, size.width.toFloat(), pad.toPx()))
+                }
+            }
+            .pointerInput(result) {
+                detectHorizontalDragGestures { change, _ ->
+                    val g = valueAt(change.position.x, size.width.toFloat(), pad.toPx())
+                    scope.launch { position.snapTo(g) }
+                    choose(g)
+                }
+            }
     ) {
-        val scaleMax = max(5f, ceil(result.strongestChopG + 0.5f))
-        val pad = 12.dp.toPx()
-        fun x(g: Float) = pad + (size.width - 2 * pad) * (g / scaleMax)
-        val bandTop = 30.dp.toPx()
-        val bandH = 22.dp.toPx()
-        val radius = CornerRadius(bandH / 2)
+        val padPx = pad.toPx()
+        val left = padPx
+        val right = size.width - padPx
+        val span = right - left
+        fun x(g: Float) = left + span * (g - Calibration.MIN_THRESHOLD_G) /
+            (Calibration.MAX_THRESHOLD_G - Calibration.MIN_THRESHOLD_G)
 
-        result.everydayG?.let { e ->
-            val end = x(max(e, ChopRecorder.FLOOR_G))
-            drawRoundRect(everydayColor, Offset(x(0f), bandTop), Size(end - x(0f), bandH), radius)
-            drawText(measurer, everydayLabel, Offset(x(0f), bandTop - 18.dp.toPx()), small)
+        val trackTop = 22.dp.toPx()
+        val trackH = 10.dp.toPx()
+        val step = span / (Calibration.thresholds.size - 1)
+
+        // Coloured zones, one slice per 0.1 g, clipped to a rounded track.
+        clipPath(Path().apply {
+            addRoundRect(RoundRect(left - step / 2, trackTop, right + step / 2, trackTop + trackH, CornerRadius(trackH / 2)))
+        }) {
+            Calibration.thresholds.forEachIndexed { i, g ->
+                val acc = result.accidental?.get(i) ?: 0
+                val color = when {
+                    acc > 0 -> accidentColor
+                    result.caught[i] < result.gestureCount -> missColor
+                    else -> safeColor
+                }
+                drawRect(color, Offset(x(g) - step / 2, trackTop), Size(step + 1f, trackH))
+            }
         }
-        val chopStart = x(result.weakestChopG)
-        val chopWidth = max(x(result.strongestChopG) - chopStart, bandH)
-        drawRoundRect(primary, Offset(chopStart, bandTop), Size(chopWidth, bandH), radius)
-        drawText(
-            measurer, chopsLabel, Offset(chopStart, bandTop - 18.dp.toPx()),
-            small.copy(color = primary, fontWeight = FontWeight.SemiBold)
-        )
+        result.safeRange?.let { safe ->
+            drawRoundRect(
+                outline, Offset(x(safe.start) - step / 2, trackTop),
+                Size(x(safe.endInclusive) - x(safe.start) + step, trackH),
+                style = Stroke(1.2.dp.toPx())
+            )
+        }
 
-        val tx = x(result.config.gForceThreshold)
+        // Recommended marker.
+        val rx = x(result.recommendedG)
         drawLine(
-            trigger, Offset(tx, bandTop - 6.dp.toPx()), Offset(tx, bandTop + bandH + 10.dp.toPx()),
-            strokeWidth = 2.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+            outline, Offset(rx, trackTop - 6.dp.toPx()), Offset(rx, trackTop + trackH + 6.dp.toPx()),
+            strokeWidth = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f))
         )
-        val triggerText = measurer.measure(triggerLabel, small.copy(color = trigger, fontWeight = FontWeight.SemiBold))
-        val triggerX = (tx - triggerText.size.width / 2f).coerceIn(0f, size.width - triggerText.size.width)
-        drawText(triggerText, topLeft = Offset(triggerX, bandTop + bandH + 12.dp.toPx()))
+        val rec = measurer.measure(recommendedLabel, small.copy(color = outline))
+        drawText(
+            rec,
+            topLeft = Offset((rx - rec.size.width / 2f).coerceIn(0f, size.width - rec.size.width), 0f)
+        )
 
-        val axisY = size.height - 20.dp.toPx()
-        drawLine(axis, Offset(x(0f), axisY), Offset(x(scaleMax), axisY), 1.dp.toPx())
-        for (g in 0..scaleMax.toInt()) {
+        // Thumb.
+        val tx = x(position.value)
+        drawCircle(thumbBorder, radius = 13.dp.toPx(), center = Offset(tx, trackTop + trackH / 2))
+        drawCircle(thumb, radius = 10.dp.toPx(), center = Offset(tx, trackTop + trackH / 2))
+
+        // End labels and scale.
+        val labelsTop = trackTop + trackH + 14.dp.toPx()
+        drawText(measurer, moreSensitive, Offset(left - padPx / 2, labelsTop), small)
+        val fewer = measurer.measure(fewerAccidents, small)
+        drawText(fewer, topLeft = Offset(right + padPx / 2 - fewer.size.width, labelsTop))
+        val scaleTop = labelsTop + 20.dp.toPx()
+        for (g in 1..5) {
             val label = measurer.measure("$g $unit", small)
-            drawText(label, topLeft = Offset(x(g.toFloat()) - label.size.width / 2f, axisY + 4.dp.toPx()))
+            drawText(label, topLeft = Offset(x(g.toFloat()) - label.size.width / 2f, scaleTop))
         }
     }
 }
 
 @Composable
-private fun ChangeRow(label: String, oldValue: String, newValue: String) {
+private fun axesLabel(mask: Int): String {
+    val names = listOfNotNull(
+        if (mask and FlashlightConfig.AXIS_Y != 0) stringResource(R.string.calibrate_axis_y) else null,
+        if (mask and FlashlightConfig.AXIS_X != 0) stringResource(R.string.calibrate_axis_x) else null,
+        if (mask and FlashlightConfig.AXIS_Z != 0) stringResource(R.string.calibrate_axis_z) else null
+    )
+    return when (names.size) {
+        3 -> stringResource(R.string.calibrate_axis_any)
+        2 -> stringResource(R.string.calibrate_axis_two, names[0], names[1].lowercase())
+        else -> names.firstOrNull() ?: stringResource(R.string.calibrate_axis_any)
+    }
+}
+
+@Composable
+private fun axesDescription(mask: Int): String? = when (mask) {
+    FlashlightConfig.AXIS_X -> stringResource(R.string.calibrate_axis_x_desc)
+    FlashlightConfig.AXIS_Y -> stringResource(R.string.calibrate_axis_y_desc)
+    FlashlightConfig.AXIS_Z -> stringResource(R.string.calibrate_axis_z_desc)
+    else -> null
+}
+
+@Composable
+private fun ChangeRow(label: String, oldValue: String?, newValue: String, description: String? = null) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -709,8 +980,17 @@ private fun ChangeRow(label: String, oldValue: String, newValue: String) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        if (oldValue != newValue) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            if (!description.isNullOrEmpty()) {
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (oldValue != null && oldValue != newValue) {
             Text(
                 oldValue,
                 style = MaterialTheme.typography.bodyMedium,

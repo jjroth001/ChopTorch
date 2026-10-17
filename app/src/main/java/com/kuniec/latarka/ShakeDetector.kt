@@ -31,12 +31,6 @@ class ShakeDetector(private var config: FlashlightConfig) {
         /** A gap in sensor data longer than this re-seeds the gravity estimate. */
         const val RESEED_GAP_MS = 1000L
 
-        /** The opposite-direction spike must follow the first spike within this window. */
-        const val REVERSAL_WINDOW_MS = 300L
-
-        /** The spiking axis must carry at least this share of the total linear acceleration. */
-        const val DOMINANCE_RATIO = 0.6f
-
         /** Total acceleration below this (in g) is treated as free fall. */
         const val FREE_FALL_G = 0.3f
 
@@ -113,16 +107,17 @@ class ShakeDetector(private var config: FlashlightConfig) {
 
         // 3. Look for a direction reversal on a dominant axis.
         for (axis in 0..2) {
+            if (config.chopAxes and (1 shl axis) == 0) continue
             val value = linear[axis]
             if (abs(value) < threshold) continue
-            if (abs(value) < DOMINANCE_RATIO * linearTotal) continue
+            if (abs(value) < config.dominanceRatio * linearTotal) continue
 
             val reversed = if (value > 0) {
                 lastPositiveSpike[axis] = currentTime
-                currentTime - lastNegativeSpike[axis] <= REVERSAL_WINDOW_MS
+                currentTime - lastNegativeSpike[axis] <= config.reversalWindowMs
             } else {
                 lastNegativeSpike[axis] = currentTime
-                currentTime - lastPositiveSpike[axis] <= REVERSAL_WINDOW_MS
+                currentTime - lastPositiveSpike[axis] <= config.reversalWindowMs
             }
             if (!reversed) continue
 

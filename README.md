@@ -12,7 +12,7 @@ This is a modified version of [Latarka](https://github.com/SebastianKuniec/Latar
 - **Starts again after a reboot or update** if it was enabled.
 - **Asks for a battery optimization exemption**, which manufacturer task killers otherwise ignore.
 - **No camera permission** (the torch API doesn't need it).
-- **Calibration.** A guided three-step flow learns how hard and how fast you chop on your phone, checks it against 20 seconds of everyday movement, and suggests a threshold and timing you can try before saving.
+- **Calibration.** A guided three-step flow records your chop-chops and 20 seconds of everyday movement, learns your chop direction, snap-back speed and rhythm, then replays both recordings through the real detector at every threshold. The results screen shows how many chop-chops each setting catches and how many accidents it causes, with a sensitivity slider you can try before saving.
 - **New name and icon:** ChopTorch, with a torch-and-motion-arcs icon that also supports Android 13+ themed icons.
 - **CI builds a debug APK** you can install directly (`debug-apk` artifact in GitHub Actions).
 
